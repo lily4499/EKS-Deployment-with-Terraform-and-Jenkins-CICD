@@ -12,8 +12,8 @@ This project demonstrates how to provision an Amazon EKS cluster using Terraform
 ## Step 1: Build and Provision the EKS Infrastructure
 
 ```bash
-export AWS_REGION=us-east-1
-cd ~/eks-terraform-demo
+git clone https://github.com/lily4499/infra-jenkins.git
+cd infra-jenkins
 
 terraform fmt
 terraform init
@@ -21,6 +21,7 @@ terraform validate
 terraform plan
 terraform apply --auto-approve
 ```
+![image](https://github.com/user-attachments/assets/60916591-15e3-4686-be49-90b17ad05da6)
 
 ---
 

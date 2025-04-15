@@ -23,6 +23,7 @@ terraform validate
 terraform plan
 terraform apply --auto-approve
 ```
+![image](https://github.com/user-attachments/assets/abaa120e-ec47-40f3-9cb3-000459f1b5dc)
 
 ---
 

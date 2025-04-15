@@ -6,9 +6,10 @@
 # EKS Terraform Project with Remote Backend and Jenkins Automation
 
 This project demonstrates how to provision an Amazon EKS cluster using Terraform, configure a remote backend with S3 and DynamoDB, and automate deployment through GitHub and Jenkins.
-![image](https://github.com/user-attachments/assets/20c86cd5-707c-4ff4-884d-69e900721768)
 
 ---
+![image](https://github.com/user-attachments/assets/631a0fac-c82b-48b2-8651-b18b49ea2637)
+
 
 ## Step 1: Build and Provision the EKS Infrastructure
 

@@ -1,127 +1,61 @@
-# EKS-Deployment-with-Terraform-and-Jenkins-CICD
 
 
 ---
 
 ```markdown
-# EKS Deployment with Terraform and Jenkins CI/CD
+# EKS Terraform Project with Remote Backend and Jenkins Automation
 
-This project demonstrates how to provision an Amazon EKS (Elastic Kubernetes Service) cluster using Terraform, configure a secure remote backend using S3 and DynamoDB, deploy a sample application, and automate the entire infrastructure lifecycle using Jenkins CI/CD.
+This project demonstrates how to provision an Amazon EKS cluster using Terraform, configure a remote backend with S3 and DynamoDB, and automate deployment through GitHub and Jenkins.
 
-## Table of Contents
+---
 
-- [Project Overview](#project-overview)
-- [Tools Used](#tools-used)
-- [Infrastructure Setup](#infrastructure-setup)
-- [Remote Backend Configuration](#remote-backend-configuration)
-- [CI/CD Automation with Jenkins](#cicd-automation-with-jenkins)
-- [How to Run This Project](#how-to-run-this-project)
-- [Sample Scripts](#sample-scripts)
-- [License](#license)
-
-## Project Overview
-
-This is a complete DevOps project that includes:
-
-- Infrastructure provisioning with Terraform
-- EKS cluster deployment on AWS
-- Remote backend using S3 and DynamoDB
-- Sample application deployment using `kubectl`
-- CI/CD automation using Jenkins and Git
-
-## Tools Used
-
-- Terraform
-- AWS CLI
-- kubectl
-- Amazon EKS
-- S3 & DynamoDB
-- Jenkins
-- Git & GitHub
-
-## Infrastructure Setup
-
-1. Clone this repository and navigate into the project directory.
-2. Define your AWS provider and resources in `main.tf`, `variables.tf`, and `outputs.tf`.
-3. Initialize and apply your infrastructure:
-
-   ```bash
-   terraform fmt
-   terraform init
-   terraform validate
-   terraform plan
-   terraform apply
-   ```
-
-4. Authenticate with the EKS cluster:
-
-   ```bash
-   aws eks update-kubeconfig --region us-east-1 --name eks_cluster
-   ```
-
-5. Verify cluster setup:
-
-   ```bash
-   kubectl get nodes
-   ```
-
-## Remote Backend Configuration
-
-Create and configure an S3 bucket and DynamoDB table to store and lock your Terraform state.
-
-### Sample Backend Block
-
-```hcl
-terraform {
-  backend "s3" {
-    bucket         = "lili-terraform-state"
-    key            = "global/s3/terraform.tfstate"
-    region         = "us-east-1"
-    dynamo_table   = "terraform-state"
-    encrypt        = true
-  }
-}
-```
-
-Run:
+## Step 1: Build and Provision the EKS Infrastructure
 
 ```bash
+export AWS_REGION=us-east-1
+cd ~/eks-terraform-demo
+
+terraform fmt
 terraform init
+terraform validate
+terraform plan
+terraform apply --auto-approve
 ```
 
-## CI/CD Automation with Jenkins
+---
 
-1. Initialize Git and push code to a remote repository:
+## Step 2: Authenticate to Your EKS Cluster
 
-   ```bash
-   git init
-   echo ".terraform/" >> .gitignore
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin <your-repo-url>
-   git push -u origin main
-   ```
+```bash
+aws eks update-kubeconfig --region us-east-1 --name eks_cluster
+kubectl get nodes
+```
 
-2. Add AWS credentials in Jenkins via **Manage Jenkins > Credentials**.
+---
 
-3. Add a `Jenkinsfile` with pipeline stages such as:
+## Step 3: Deploy and Verify Sample Application
 
-   - Terraform Init & Apply
-   - Kubernetes deployment
+```bash
+kubectl apply -f deployment.yml
+kubectl get pods
+kubectl get svc
+```
 
-4. Create a Jenkins pipeline job, link it to the repo, and run the build.
+Access the application by visiting the LoadBalancer's EXTERNAL-IP in your browser.
 
-5. After the job completes, get the LoadBalancer DNS from AWS:
+---
 
-   ```bash
-   kubectl get svc
-   ```
+## Step 4: Configure Remote Backend for Terraform
 
-   Visit the external IP in your browser to access the app.
+### Check Local State
 
-## Sample Scripts
+```bash
+ls
+cat terraform.tfstate
+terraform state list
+```
 
-### Create S3 and DynamoDB via Terraform
+### Define Backend Resources in `backend.tf`
 
 ```hcl
 provider "aws" {
@@ -172,19 +106,160 @@ resource "aws_dynamodb_table" "terraform_state" {
     type = "S"
   }
 }
+
+output "s3_bucket_arn" {
+  value = aws_s3_bucket.terraform_state.arn
+}
+
+output "dynamodb_table_name" {
+  value = aws_dynamodb_table.terraform_state.name
+}
 ```
 
-## License
+### Add Backend Block to `provider.tf`
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "lili-terraform-state"
+    key            = "global/s3/terraform.tfstate"
+    region         = "us-east-1"
+    dynamo_table   = "terraform-state"
+    encrypt        = true
+  }
+}
+```
+
+### Initialize Backend
+
+```bash
+terraform init
+```
+
+### Confirm Remote State
+
+```bash
+cat terraform.tfstate
+```
+
+Check AWS Console: `S3 > lili-terraform-state > global/s3/terraform.tfstate`
+
+### Test Locking Behavior
+
+```bash
+terraform plan            # Run and press Ctrl+C mid-process
+terraform plan            # Observe lock in effect
+terraform plan -lock=false
+terraform force-unlock <lock_id>
+```
+
+### Optional: Revert to Local State
+
+```bash
+# Comment backend block in provider.tf
+terraform init -migrate-state
 ```
 
 ---
 
-Let me know if you also want:
+## Step 5: Automate with Git and Jenkins
 
-- A sample `Jenkinsfile`
-- A sample Kubernetes `app-deployment.yaml`
-- A folder structure guide
+### Git Setup
 
-Happy to provide those next.
+```bash
+git init
+git remote add origin https://github.com/<your-username>/<repo>.git
+
+echo ".terraform/" >> .gitignore
+echo "*.tfstate" >> .gitignore
+
+git add .
+git commit -m "Initial commit with Terraform for EKS"
+git push -u origin main
+```
+
+### Jenkins Setup
+
+1. Add AWS credentials in Jenkins:
+   - Manage Jenkins > Credentials > Global > Add AWS Access and Secret Key.
+
+2. Example `Jenkinsfile`:
+
+```groovy
+pipeline {
+  agent any
+
+  environment {
+    AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
+    AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+    AWS_DEFAULT_REGION    = 'us-east-1'
+  }
+
+  parameters {
+    choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Terraform action')
+  }
+
+  stages {
+    stage('Checkout Code') {
+      steps {
+        git url: 'https://github.com/<your-username>/<repo>.git', branch: 'main'
+      }
+    }
+
+    stage('Terraform Init') {
+      steps {
+        sh 'terraform init'
+      }
+    }
+
+    stage('Terraform Plan') {
+      steps {
+        sh 'terraform plan'
+      }
+    }
+
+    stage('Terraform Apply/Destroy') {
+      steps {
+        sh 'terraform ${ACTION} -auto-approve'
+      }
+    }
+
+    stage('Deploy Application') {
+      when {
+        expression { params.ACTION == 'apply' }
+      }
+      steps {
+        sh 'aws eks update-kubeconfig --region us-east-1 --name eks_cluster'
+        sh 'kubectl apply -f deployment.yml'
+        sh 'kubectl get pods'
+      }
+    }
+  }
+}
+```
+
+3. Create Jenkins pipeline job
+   - Use "Pipeline script from SCM"
+   - Use GitHub repo URL
+   - Add build parameter: `ACTION` with choices `apply` and `destroy`
+   - Trigger and run pipeline
+
+---
+
+## Step 6: Access the Application
+
+```bash
+kubectl get svc
+```
+
+Use the `EXTERNAL-IP` of the LoadBalancer service to access the app in your browser.
+
+---
+
+## License
+
+
+```
+
+---
+

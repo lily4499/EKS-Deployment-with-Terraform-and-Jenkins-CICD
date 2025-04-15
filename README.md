@@ -6,6 +6,7 @@
 # EKS Terraform Project with Remote Backend and Jenkins Automation
 
 This project demonstrates how to provision an Amazon EKS cluster using Terraform, configure a remote backend with S3 and DynamoDB, and automate deployment through GitHub and Jenkins.
+![image](https://github.com/user-attachments/assets/20c86cd5-707c-4ff4-884d-69e900721768)
 
 ---
 
@@ -21,7 +22,6 @@ terraform validate
 terraform plan
 terraform apply --auto-approve
 ```
-![image](https://github.com/user-attachments/assets/60916591-15e3-4686-be49-90b17ad05da6)
 
 ---
 
@@ -117,7 +117,7 @@ output "dynamodb_table_name" {
 }
 ```
 
-### Add Backend Block to `provider.tf`
+### Create a New backend.tf File
 
 ```hcl
 terraform {

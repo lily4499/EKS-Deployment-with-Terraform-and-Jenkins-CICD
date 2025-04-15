@@ -7,7 +7,6 @@
 ---
 
 ```markdown
-# EKS Terraform Project with Remote Backend and Jenkins Automation
 
 This project demonstrates how to provision an Amazon EKS cluster using Terraform, configure a remote backend with S3 and DynamoDB, and automate deployment through GitHub and Jenkins.
 
